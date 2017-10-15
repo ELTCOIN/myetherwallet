@@ -30,7 +30,7 @@ var walletGenCtrl = function($scope) {
 
             //TODO: Callback with  wallet
             console.log("Generated wallet:", $scope.wallet.toJSON());
-            
+            globalFuncs.callNativeApp("NEW_WALLET", $scope.wallet.toJSON())
             
             if (!$scope.$$phase) $scope.$apply();
         }
