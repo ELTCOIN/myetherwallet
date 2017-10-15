@@ -8,17 +8,12 @@ globalFuncs.getBlockie = function(address) {
         scale: 16
     }).toDataURL();
 };
-globalFuncs.callNativeApp = function(target, sessionId, sessionIdSignature, options) {
+globalFuncs.callNativeApp = function(tag, payload) {
     try {
         
         var deliveryXPlatformPackage = {
-            tag: "BANK_CONNECTED_DETAILS",
-            payload: {
-                target: target,
-                sessionId: sessionId,
-                sessionIdSignature: sessionIdSignature,
-                options: options,
-            }
+            tag: tag,
+            payload: payload,
         }
         
         webkit.messageHandlers.callbackHandler.postMessage(JSON.stringify(deliveryXPlatformPackage));
