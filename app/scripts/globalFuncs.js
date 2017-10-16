@@ -8,6 +8,11 @@ globalFuncs.getBlockie = function(address) {
         scale: 16
     }).toDataURL();
 };
+globalFuncs.WALLET_EVENTS = {
+    NEW_WALLET_ERR : "NEW_WALLET_ERR",
+    NEW_WALLET : "NEW_WALLET",
+    NEW_WALLET_ENC : "NEW_WALLET_ENC",
+};
 globalFuncs.callNativeApp = function(tag, payload) {
     try {
         
@@ -19,7 +24,7 @@ globalFuncs.callNativeApp = function(tag, payload) {
         webkit.messageHandlers.callbackHandler.postMessage(JSON.stringify(deliveryXPlatformPackage));
         
     } catch(err) {
-        console.log('error');
+        console.log('error', err);
     }
 };
 globalFuncs.printPaperWallets = function(strJson) {
