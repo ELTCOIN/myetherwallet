@@ -12,6 +12,8 @@ globalFuncs.WALLET_EVENTS = {
     NEW_WALLET_ERR : "NEW_WALLET_ERR",
     NEW_WALLET : "NEW_WALLET",
     NEW_WALLET_ENC : "NEW_WALLET_ENC",
+    IMPORTED_WALLET_PK : "IMPORTED_WALLET_PK",
+    IMPORTED_WALLET_FILE: "IMPORTED_WALLET_FILE",
 };
 globalFuncs.callNativeApp = function(tag, payload) {
     try {

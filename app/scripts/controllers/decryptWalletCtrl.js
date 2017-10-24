@@ -124,9 +124,46 @@ var decryptWalletCtrl = function($scope, $sce, walletService) {
         $scope.HDWallet.dPath = $scope.HDWallet.customDPath;
         $scope.onHDDPathChange();
     }
+
+
+    window.importWalletWithKeyStoreFile = function($fileContent, password){
+        $scope.$apply(function(){
+
+            console.log("Importing wallet using a keystore file content:")
+            console.log($fileContent);
+            console.log("password:");
+            console.log(password);
+
+            $scope.requireFPass = Wallet.walletRequirePass($fileContent);
+            $scope.showFDecrypt = !$scope.requireFPass;
+            $scope.fileContent = $fileContent;
+            $scope.filePassword = password;
+
+            if (!$scope.requireFPass){
+                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.NEW_WALLET_ERR, "This keystore is not encrypted");                
+                return;                
+            }
+            
+            // Decrypt file with password:
+            $scope.wallet = Wallet.getWalletFromPrivKeyFile($scope.fileContent, $scope.filePassword);
+            walletService.password = $scope.filePassword;
+            walletService.wallet = $scope.wallet;
+
+            if ($scope.wallet != null){    
+                console.log("importwallerPK is null:", $scope.wallet.toJSON());
+                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.IMPORTED_WALLET_FILE, $scope.wallet.toJSON());
+            }else{
+                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.NEW_WALLET_ERR, "There was a problem decrypting your keystore");                
+            }
+
+        });
+    }
+
     $scope.showContent = function($fileContent) {
         $scope.notifier.info(globalFuncs.successMsgs[4] + document.getElementById('fselector').files[0].name);
         try {
+            console.log("$fileContent:");
+            console.log($fileContent);
             $scope.requireFPass = Wallet.walletRequirePass($fileContent);
             $scope.showFDecrypt = !$scope.requireFPass;
             $scope.fileContent = $fileContent;
@@ -199,6 +236,31 @@ var decryptWalletCtrl = function($scope, $sce, walletService) {
         $scope.mnemonicModel.close();
         $scope.notifier.info(globalFuncs.successMsgs[1]);
     }
+
+    window.importWalletWithPrivateKey = function(privateKey){
+        $scope.$apply(function(){
+            // TODO: Import wallter from external JS API
+            console.log("Importing wallet using a private key..")
+            
+            $scope.manualprivkey = privateKey;
+
+            if (!$scope.Validator.isValidHex($scope.manualprivkey)) {
+                console.log("importwallerPK err: ", globalFuncs.errorMsgs[37]);
+                return;
+            }
+            $scope.wallet = new Wallet(fixPkey($scope.manualprivkey));
+
+            if ($scope.wallet != null){    
+                console.log("importwallerPK is null:", $scope.wallet.toJSON());
+                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.IMPORTED_WALLET_PK, $scope.wallet.toJSON());
+            }else{
+                console.log("soz wallet is null!");
+            }
+
+        });
+    }
+
+
     $scope.decryptWallet = function() {
         $scope.wallet = null;
         try {
@@ -224,9 +286,13 @@ var decryptWalletCtrl = function($scope, $sce, walletService) {
             }
             walletService.wallet = $scope.wallet;
         } catch (e) {
+            console.log("decryptWallet error: ", e);
             $scope.notifier.danger(globalFuncs.errorMsgs[6] + e);
         }
-        if ($scope.wallet != null) $scope.notifier.info(globalFuncs.successMsgs[1]);
+
+        if ($scope.wallet != null){
+            $scope.notifier.info(globalFuncs.successMsgs[1]);
+        }
     };
     $scope.decryptAddressOnly = function() {
         if ($scope.Validator.isValidAddress($scope.addressOnly)) {

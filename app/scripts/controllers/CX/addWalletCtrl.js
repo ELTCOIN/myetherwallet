@@ -170,8 +170,7 @@ var addWalletCtrl = function($scope, $sce) {
             $scope.showAddWallet = true;
             $scope.showPassTxt = $scope.addAccount.password == '';
             $scope.setBalance();
-            //TODO: Callbacl with decrypted wallet
-
+            //TODO: Callback with decrypted wallet
         }
     };
     $scope.setNickNames = function() {
