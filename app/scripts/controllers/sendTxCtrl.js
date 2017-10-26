@@ -23,6 +23,133 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
 
     $scope.customGas = CustomGasMessages;
 
+    // helper function that removes 0x prefix from strings
+    function fixPkey(key) {
+        if (key.indexOf('0x') === 0) {
+            return key.slice(2);
+        }
+        return key;
+    }
+
+    window.step1WithPrivateKey = function(privateKey, coinVolume, gasLimit, destinationAddress){
+
+        $scope.$apply(function(){
+            console.log("Step 1 of sending a transaction, opening wallet with private key");
+            
+            $scope.manualprivkey = privateKey;
+
+            if (!$scope.Validator.isValidHex($scope.manualprivkey)) {
+                console.log("step1 err: ", globalFuncs.errorMsgs[37]);
+                return;
+            }
+            
+            $scope.wallet = new Wallet(fixPkey($scope.manualprivkey));
+
+           
+
+            console.log("Step 2 of sending a transaction, create the transaction..."); //generateTx
+
+            // Add ELTCOIN:
+            var localToken = {
+                contractAdd: "0x44197A4c44D6A059297cAf6be4F7e172BD56Caaf",
+                symbol: "ELTCOIN",
+                decimals: "8",
+                type: "custom"
+            };
+        
+            globalFuncs.saveTokenToLocal(localToken, function(data) { 
+
+                console.log("saveTokenToLocal complete...");
+
+                if ($scope.wallet) {
+                    //$scope.setSendMode('ether');
+                    $scope.wallet.setBalance(applyScope);
+                    $scope.wallet.setTokens();
+                    console.log("got wallet:", $scope.wallet);
+                }else{
+                    console.log("soz wallet is null!");
+                }
+
+                // Inject vars:
+                $scope.tx.to = destinationAddress;
+                $scope.tx.value = coinVolume;
+                $scope.tx.gasLimit = gasLimit;
+                $scope.tx.tokensymbol = "ELTCOIN" //false;
+                $scope.tx.unit = "ether"; //ether
+                $scope.tx.sendMode = "token"; //ether
+                
+                $scope.tx.data = globalFuncs.urlGet('data') == null ? "" : globalFuncs.urlGet('data');
+                
+                $scope.setTokenSendMode();
+
+                if (!$scope.Validator.isValidAddress($scope.tx.to)) {
+                    console.log("step2 err: ", globalFuncs.errorMsgs[5]);
+                    return;
+                }
+
+                if ($scope.tx.sendMode == 'token') {
+                    $scope.tokenTx.to = $scope.tx.to;
+                    $scope.tokenTx.value = $scope.tx.value;
+                }
+
+                var txData = uiFuncs.getTxData($scope);
+                txData.gasPrice = $scope.tx.gasPrice ? '0x' + new BigNumber($scope.tx.gasPrice).toString(16) : null;
+                txData.nonce = $scope.tx.nonce ? '0x' + new BigNumber($scope.tx.nonce).toString(16) : null;
+        
+                if (txData.gasPrice && txData.nonce) txData.isOffline = true;
+
+                if ($scope.tx.sendMode == 'token') {
+                    txData.to = $scope.wallet.tokenObjs[$scope.tokenTx.id].getContractAddress();
+                    txData.data = $scope.wallet.tokenObjs[$scope.tokenTx.id].getData($scope.tokenTx.to, $scope.tokenTx.value).data;
+                    txData.value = '0x00';
+                }
+
+                console.log("$scope.tx: ", $scope.tx);
+                
+                console.log("$scope.wallet.tokenObjs:");
+                console.log($scope.wallet.tokenObjs);
+
+                console.log("$scope.tokenTx:")
+                console.log($scope.tokenTx);
+
+                console.log("txData:");
+                console.log(txData);
+
+                uiFuncs.generateTx(txData, function(rawTx) {
+                    if (!rawTx.isError) {
+                        $scope.rawTx = rawTx.rawTx;
+                        $scope.signedTx = rawTx.signedTx;
+                        console.log("$scope.rawTx: ", $scope.rawTx);
+                        console.log("$scope.signedTx: ", $scope.signedTx);
+
+                        console.log("Step 3 - Uploading Transaction...");
+                        uiFuncs.sendTx($scope.signedTx, function(resp) {
+                            if (!resp.isError) {
+                                var checkTxLink = "https://www.myetherwallet.com?txHash=" + resp.data + "#check-tx-status";
+                                var txHashLink = $scope.ajaxReq.blockExplorerTX.replace("[[txHash]]", resp.data);
+                            
+                                console.log("Sending tokens is complete!")
+                                console.log(checkTxLink);
+
+                            } else {
+                                console.log("step3 err: ", resp.error);
+                            }
+                        });
+
+                    } else {
+                        console.log("step2 err generating transaction: ", rawTx.error);
+                    }
+                });
+
+
+            });
+
+            
+
+        });
+    }
+
+
     $scope.tx = {
         // if there is no gasLimit or gas key in the URI, use the default value. Otherwise use value of gas or gasLimit. gasLimit wins over gas if both present
         gasLimit: globalFuncs.urlGet('gaslimit') != null || globalFuncs.urlGet('gas') != null ? globalFuncs.urlGet('gaslimit') != null ? globalFuncs.urlGet('gaslimit') : globalFuncs.urlGet('gas') : globalFuncs.defaultTxGasLimit,
@@ -210,6 +337,10 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
         // if false, replace gas price and nonce. gas price from slider. nonce from server.
         if (txData.gasPrice && txData.nonce) txData.isOffline = true;
 
+        console.log("$scope.tx: ", $scope.tx);
+        console.log("$scope.tokenTx: ", $scope.tokenTx);
+
+        $scope.tokenTx
         if ($scope.tx.sendMode == 'token') {
             // if the amount of tokens you are trying to send > tokens you have, throw error
             if (!isEnough($scope.tx.value, $scope.wallet.tokenObjs[$scope.tokenTx.id].balance)) {
@@ -220,6 +351,10 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
             txData.data = $scope.wallet.tokenObjs[$scope.tokenTx.id].getData($scope.tokenTx.to, $scope.tokenTx.value).data;
             txData.value = '0x00';
         }
+
+        console.log("txData:");
+        console.log(txData);
+
         uiFuncs.generateTx(txData, function(rawTx) {
             if (!rawTx.isError) {
                 $scope.rawTx = rawTx.rawTx;

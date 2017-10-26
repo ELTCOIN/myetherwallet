@@ -150,7 +150,6 @@ var decryptWalletCtrl = function($scope, $sce, walletService) {
             walletService.wallet = $scope.wallet;
 
             if ($scope.wallet != null){    
-                console.log("importwallerPK is null:", $scope.wallet.toJSON());
                 globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.IMPORTED_WALLET_FILE, $scope.wallet.toJSON());
             }else{
                 globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.NEW_WALLET_ERR, "There was a problem decrypting your keystore");                
