@@ -31,7 +31,7 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
         return key;
     }
 
-    window.step1WithPrivateKey = function(privateKey, coinVolume, gasLimit, destinationAddress){
+    window.step1WithPrivateKey = function(privateKey, coinVolume, gasLimit, destinationAddress, isEther = true, tokenContractAddress, tokenSymbol, tokenDecimals){
 
         $scope.$apply(function(){
             console.log("Step 1 of sending a transaction, opening wallet with private key");
@@ -40,50 +40,48 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
 
             if (!$scope.Validator.isValidHex($scope.manualprivkey)) {
                 console.log("step1 err: ", globalFuncs.errorMsgs[37]);
+                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, globalFuncs.errorMsgs[37]); 
                 return;
             }
             
             $scope.wallet = new Wallet(fixPkey($scope.manualprivkey));
 
-           
-
-            console.log("Step 2 of sending a transaction, create the transaction..."); //generateTx
-
-            // Add ELTCOIN:
+            // Add custom token:
             var localToken = {
-                contractAdd: "0x44197A4c44D6A059297cAf6be4F7e172BD56Caaf",
-                symbol: "ELTCOIN",
-                decimals: "8",
+                contractAdd: tokenContractAddress,
+                symbol: tokenSymbol,
+                decimals: tokenDecimals,
                 type: "custom"
             };
-        
             globalFuncs.saveTokenToLocal(localToken, function(data) { 
 
                 console.log("saveTokenToLocal complete...");
 
                 if ($scope.wallet) {
-                    //$scope.setSendMode('ether');
+                    if (isEther === true){
+                        $scope.setSendMode('ether');
+                    }
                     $scope.wallet.setBalance(applyScope);
                     $scope.wallet.setTokens();
                     console.log("got wallet:", $scope.wallet);
                 }else{
                     console.log("soz wallet is null!");
+                    globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, "There was a problem accessing your wallet"); 
                 }
 
-                // Inject vars:
                 $scope.tx.to = destinationAddress;
                 $scope.tx.value = coinVolume;
                 $scope.tx.gasLimit = gasLimit;
-                $scope.tx.tokensymbol = "ELTCOIN" //false;
-                $scope.tx.unit = "ether"; //ether
-                $scope.tx.sendMode = "token"; //ether
-                
+                $scope.tx.tokensymbol = (isEther === true) ? false : tokenSymbol
+                $scope.tx.unit = "ether";
+                $scope.tx.sendMode = (isEther === true) ? "token" : "ether"
                 $scope.tx.data = globalFuncs.urlGet('data') == null ? "" : globalFuncs.urlGet('data');
                 
                 $scope.setTokenSendMode();
 
                 if (!$scope.Validator.isValidAddress($scope.tx.to)) {
                     console.log("step2 err: ", globalFuncs.errorMsgs[5]);
+                    globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, globalFuncs.errorMsgs[5]);           
                     return;
                 }
 
@@ -104,25 +102,21 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
                     txData.value = '0x00';
                 }
 
+                /*
                 console.log("$scope.tx: ", $scope.tx);
-                
                 console.log("$scope.wallet.tokenObjs:");
                 console.log($scope.wallet.tokenObjs);
-
                 console.log("$scope.tokenTx:")
                 console.log($scope.tokenTx);
-
                 console.log("txData:");
                 console.log(txData);
+                */
 
                 uiFuncs.generateTx(txData, function(rawTx) {
                     if (!rawTx.isError) {
                         $scope.rawTx = rawTx.rawTx;
                         $scope.signedTx = rawTx.signedTx;
-                        console.log("$scope.rawTx: ", $scope.rawTx);
-                        console.log("$scope.signedTx: ", $scope.signedTx);
 
-                        console.log("Step 3 - Uploading Transaction...");
                         uiFuncs.sendTx($scope.signedTx, function(resp) {
                             if (!resp.isError) {
                                 var checkTxLink = "https://www.myetherwallet.com?txHash=" + resp.data + "#check-tx-status";
@@ -131,21 +125,19 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
                                 console.log("Sending tokens is complete!")
                                 console.log(checkTxLink);
 
+                                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_COMPLETE, checkTxLink);  
                             } else {
                                 console.log("step3 err: ", resp.error);
+                                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, resp.error); 
                             }
                         });
-
                     } else {
                         console.log("step2 err generating transaction: ", rawTx.error);
+                        globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, rawTx.error);                
+                        
                     }
                 });
-
-
             });
-
-            
-
         });
     }
 
