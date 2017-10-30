@@ -63,9 +63,7 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
                     }
                     $scope.wallet.setBalance(applyScope);
                     $scope.wallet.setTokens();
-                    console.log("got wallet:", $scope.wallet);
                 }else{
-                    console.log("soz wallet is null!");
                     globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, "There was a problem accessing your wallet"); 
                 }
 
@@ -102,16 +100,6 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
                     txData.value = '0x00';
                 }
 
-                /*
-                console.log("$scope.tx: ", $scope.tx);
-                console.log("$scope.wallet.tokenObjs:");
-                console.log($scope.wallet.tokenObjs);
-                console.log("$scope.tokenTx:")
-                console.log($scope.tokenTx);
-                console.log("txData:");
-                console.log(txData);
-                */
-
                 uiFuncs.generateTx(txData, function(rawTx) {
                     if (!rawTx.isError) {
                         $scope.rawTx = rawTx.rawTx;
@@ -134,7 +122,6 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
                     } else {
                         console.log("step2 err generating transaction: ", rawTx.error);
                         globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, rawTx.error);                
-                        
                     }
                 });
             });

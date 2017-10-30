@@ -9,10 +9,11 @@ var walletGenCtrl = function($scope) {
     $scope.fileDownloaded = false;
     $scope.showPaperWallet = false;
     $scope.showGetAddress = false;
+    
     $scope.genNewWallet = function() {
         if (!$scope.isStrongPass()) {
-            $scope.notifier.danger(globalFuncs.errorMsgs[1]);
             globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.NEW_WALLET_ERR, globalFuncs.errorMsgs[1]);
+            $scope.notifier.danger(globalFuncs.errorMsgs[1]);
         } else if ($scope.isDone) {
             $scope.wallet = $scope.blob = $scope.blobEnc = null;
             if (!$scope.$$phase) $scope.$apply();
@@ -33,8 +34,6 @@ var walletGenCtrl = function($scope) {
                 parent.postMessage(JSON.stringify({ address: $scope.wallet.getAddressString(), checksumAddress: $scope.wallet.getChecksumAddressString() }), "*");
             $scope.isDone = true;
 
-            //TODO: Callback with  wallet
-            console.log("Generated wallet:", $scope.wallet.toJSON());
             globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.NEW_WALLET, $scope.wallet.toJSON());
             globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.NEW_WALLET_ENC, $scope.walletEnc);
             
@@ -44,10 +43,12 @@ var walletGenCtrl = function($scope) {
 
     window.externalGenerateWallet = function(password){
         $scope.$apply(function(){
-            // TODO: Set password from external JS API
-            console.log("External JS API creating wallet..")
             $scope.password = password;
-            $scope.genNewWallet();
+            try{
+                $scope.genNewWallet();
+            }catch(err){
+                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.NEW_WALLET_ERR, err.message);                                                                
+            }
         });
     };
 

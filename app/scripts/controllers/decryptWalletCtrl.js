@@ -129,12 +129,12 @@ var decryptWalletCtrl = function($scope, $sce, walletService) {
     window.importWalletWithKeyStoreFile = function($fileContent, password){
         $scope.$apply(function(){
 
-            console.log("Importing wallet using a keystore file content:")
-            console.log($fileContent);
-            console.log("password:");
-            console.log(password);
+            try {
+                $scope.requireFPass = Wallet.walletRequirePass($fileContent);
+            }catch(err){
+                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.NEW_WALLET_ERR, err.message);                                
+            }
 
-            $scope.requireFPass = Wallet.walletRequirePass($fileContent);
             $scope.showFDecrypt = !$scope.requireFPass;
             $scope.fileContent = $fileContent;
             $scope.filePassword = password;
@@ -144,17 +144,19 @@ var decryptWalletCtrl = function($scope, $sce, walletService) {
                 return;                
             }
             
-            // Decrypt file with password:
-            $scope.wallet = Wallet.getWalletFromPrivKeyFile($scope.fileContent, $scope.filePassword);
-            walletService.password = $scope.filePassword;
-            walletService.wallet = $scope.wallet;
+            try {
+                $scope.wallet = Wallet.getWalletFromPrivKeyFile($scope.fileContent, $scope.filePassword);
+                walletService.password = $scope.filePassword;
+                walletService.wallet = $scope.wallet;
+            }catch(err){
+                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.NEW_WALLET_ERR, err.message);                                
+            }
 
             if ($scope.wallet != null){    
                 globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.IMPORTED_WALLET_FILE, $scope.wallet.toJSON());
             }else{
                 globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.NEW_WALLET_ERR, "There was a problem decrypting your keystore");                
             }
-
         });
     }
 
@@ -238,24 +240,24 @@ var decryptWalletCtrl = function($scope, $sce, walletService) {
 
     window.importWalletWithPrivateKey = function(privateKey){
         $scope.$apply(function(){
-            // TODO: Import wallter from external JS API
-            console.log("Importing wallet using a private key..")
-            
             $scope.manualprivkey = privateKey;
 
             if (!$scope.Validator.isValidHex($scope.manualprivkey)) {
-                console.log("importwallerPK err: ", globalFuncs.errorMsgs[37]);
+                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.NEW_WALLET_ERR, globalFuncs.errorMsgs[37]);                                                
                 return;
             }
-            $scope.wallet = new Wallet(fixPkey($scope.manualprivkey));
 
-            if ($scope.wallet != null){    
-                console.log("importwallerPK is null:", $scope.wallet.toJSON());
-                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.IMPORTED_WALLET_PK, $scope.wallet.toJSON());
-            }else{
-                console.log("soz wallet is null!");
+            try{
+                $scope.wallet = new Wallet(fixPkey($scope.manualprivkey));
+            }catch(err){
+                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.NEW_WALLET_ERR, err.message);                                                
             }
 
+            if ($scope.wallet != null){    
+                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.IMPORTED_WALLET_PK, $scope.wallet.toJSON());
+            }else{
+                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.NEW_WALLET_ERR, "There was a problem decoding your wallet");                                                
+            }
         });
     }
 
