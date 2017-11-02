@@ -1,5 +1,6 @@
 'use strict';
 var decryptWalletCtrl = function($scope, $sce, walletService) {
+
     $scope.walletType = "";
     $scope.requireFPass = $scope.requirePPass = $scope.showFDecrypt = $scope.showPDecrypt = $scope.showAOnly = $scope.showParityDecrypt = false;
     $scope.filePassword = "";
@@ -124,8 +125,7 @@ var decryptWalletCtrl = function($scope, $sce, walletService) {
         $scope.HDWallet.dPath = $scope.HDWallet.customDPath;
         $scope.onHDDPathChange();
     }
-
-
+    
     window.importWalletWithKeyStoreFile = function($fileContent, password){
         $scope.$apply(function(){
 

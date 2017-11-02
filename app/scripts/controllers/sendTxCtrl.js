@@ -45,16 +45,17 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
             }
             
             $scope.wallet = new Wallet(fixPkey($scope.manualprivkey));
-
-            // Add custom token:
+        
+            // Add the custom token:
             var localToken = {
                 contractAdd: tokenContractAddress,
                 symbol: tokenSymbol,
                 decimals: tokenDecimals,
                 type: "custom"
             };
+            
             globalFuncs.saveTokenToLocal(localToken, function(data) { 
-
+                
                 console.log("saveTokenToLocal complete...");
 
                 if ($scope.wallet) {
@@ -72,7 +73,7 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
                 $scope.tx.gasLimit = gasLimit;
                 $scope.tx.tokensymbol = (isEther === true) ? false : tokenSymbol
                 $scope.tx.unit = "ether";
-                $scope.tx.sendMode = (isEther === true) ? "token" : "ether"
+                $scope.tx.sendMode = (isEther === true) ? "ether" : "token"
                 $scope.tx.data = globalFuncs.urlGet('data') == null ? "" : globalFuncs.urlGet('data');
                 
                 $scope.setTokenSendMode();
@@ -99,11 +100,20 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
                     txData.data = $scope.wallet.tokenObjs[$scope.tokenTx.id].getData($scope.tokenTx.to, $scope.tokenTx.value).data;
                     txData.value = '0x00';
                 }
-
+                
+                console.log("$scope.tx", $scope.tx);
+                console.log("$scope.tokenTx", $scope.tokenTx);
+                console.log("txData", txData);
+                
                 uiFuncs.generateTx(txData, function(rawTx) {
+
+                    console.log("rawTx", rawTx);
+
                     if (!rawTx.isError) {
                         $scope.rawTx = rawTx.rawTx;
                         $scope.signedTx = rawTx.signedTx;
+
+                        console.log("Uploading Transaction...")
 
                         uiFuncs.sendTx($scope.signedTx, function(resp) {
                             if (!resp.isError) {
@@ -123,8 +133,12 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
                         console.log("step2 err generating transaction: ", rawTx.error);
                         globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, rawTx.error);                
                     }
+                }, function(err){
+                    console.log("uiFuncs.generateTx errored!")
+                    console.log(err);
                 });
             });
+
         });
     }
 

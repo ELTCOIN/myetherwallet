@@ -52,6 +52,7 @@ window.bity                  = bity;
 var ens                      = require('./ens');
 window.ens                   = ens;
 var translate                = require('./translations/translate.js');
+
 if (IS_CX) {
   var cxFuncs                = require('./cxFuncs');
   window.cxFuncs             = cxFuncs;
