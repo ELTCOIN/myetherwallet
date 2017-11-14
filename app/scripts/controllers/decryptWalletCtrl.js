@@ -242,9 +242,13 @@ var decryptWalletCtrl = function($scope, $sce, walletService) {
         $scope.$apply(function(){
             $scope.manualprivkey = privateKey;
 
-            if (!$scope.Validator.isValidHex($scope.manualprivkey)) {
-                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.NEW_WALLET_ERR, globalFuncs.errorMsgs[37]);                                                
-                return;
+            try{
+                if (!$scope.Validator.isValidHex($scope.manualprivkey)) {
+                    globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.NEW_WALLET_ERR, globalFuncs.errorMsgs[37]);                                                
+                    return;
+                }
+            }catch(err){
+                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.NEW_WALLET_ERR, err.message);                                                
             }
 
             try{
