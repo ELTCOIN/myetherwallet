@@ -316,24 +316,47 @@ globalFuncs.doesTokenExistInDefaultTokens = function(token, defaultTokensAndNetw
   return false
 };
 
-globalFuncs.saveTokenToLocal = function(localToken, callback) {
+globalFuncs.saveTokenToLocal = function (localToken, callback) {
     try {
-        if (!ethFuncs.validateEtherAddress(localToken.contractAdd)) {throw globalFuncs.errorMsgs[5]}
-        else if (!globalFuncs.isNumeric(localToken.decimals) || parseFloat(localToken.decimals) < 0) {throw globalFuncs.errorMsgs[7]}
-        else if (!globalFuncs.isAlphaNumeric(localToken.symbol) || localToken.symbol == "") {throw globalFuncs.errorMsgs[19]}
+
+        console.log("adding localToken:");
+        console.log(localToken);
+
+        if (localToken.symbol == "ETH") {
+            callback({ error: false });
+            return;
+        }
+
+        if (!ethFuncs.validateEtherAddress(localToken.contractAdd)) {
+            globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, globalFuncs.errorMsgs[5]);
+            throw globalFuncs.errorMsgs[5];
+        } else if (!globalFuncs.isNumeric(localToken.decimals) || parseFloat(localToken.decimals) < 0) {
+            globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, globalFuncs.errorMsgs[7]);
+            throw globalFuncs.errorMsgs[7];
+        } else if (!globalFuncs.isAlphaNumeric(localToken.symbol) || localToken.symbol == "") {
+            globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, globalFuncs.errorMsgs[19]);
+            throw globalFuncs.errorMsgs[19];
+        }
+
         var storedTokens = globalFuncs.localStorage.getItem("localTokens", null) != null ? JSON.parse(globalFuncs.localStorage.getItem("localTokens")) : [];
 
         // catch if TOKEN SYMBOL is already in storedTokens
-        for (var i = 0; i < storedTokens.length; i++){
+        for (var i = 0; i < storedTokens.length; i++) {
             if (storedTokens[i].symbol.toLowerCase().replace(/ /g, '') === localToken.symbol.toLowerCase().replace(/ /g, '')) {
-              throw Error('ERROR: Unable to add a custom token with the same symbol as an existing custom token')
+                console.log("This is a duplicate with:");
+                console.log(storedTokens[i]);
+                console.log("new token:");
+                console.log(localToken);
+                //globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, 'ERROR: Unable to add a custom token with the same symbol as an existing custom token'); 
+                //throw Error('ERROR: Unable to add a custom token with the same symbol as an existing custom token')
             }
         }
 
         // catch if CONTRACT ADDRESS is already in storedTokens
-        for (var i = 0; i < storedTokens.length; i++){
+        for (var i = 0; i < storedTokens.length; i++) {
             if (storedTokens[i].contractAddress.toLowerCase().replace(/ /g, '') === localToken.contractAdd.toLowerCase().replace(/ /g, '')) {
-              throw Error('ERROR: Unable to add custom token. It has the same address as custom token ' + storedTokens[i].symbol + '.')
+                //globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, 'ERROR: Unable to add custom token. It has the same address as custom token ' + storedTokens[i].symbol + '.'); 
+                //throw Error('ERROR: Unable to add custom token. It has the same address as custom token ' + storedTokens[i].symbol + '.')    
             }
         }
 
@@ -341,7 +364,8 @@ globalFuncs.saveTokenToLocal = function(localToken, callback) {
 
         // catch if TOKEN SYMBOL is already in defaultTokens
         if (globalFuncs.doesTokenExistInDefaultTokens(localToken, defaultTokensAndNetworkType)) {
-          throw Error('ERROR: Unable to add a duplicate custom token.')
+            //globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, 'ERROR: Unable to add a duplicate custom token.'); 
+            //throw Error('ERROR: Unable to add a duplicate custom token.')
         }
 
         storedTokens.push({
@@ -352,13 +376,12 @@ globalFuncs.saveTokenToLocal = function(localToken, callback) {
             network: globalFuncs.getDefaultTokensAndNetworkType().networkType
         });
 
-        localStorage.setItem("localTokens", JSON.stringify(storedTokens));
+        globalFuncs.localStorage.setItem("localTokens", JSON.stringify(storedTokens));
 
-        callback({
-          error: false
-        });
-
+        callback({ error: false });
     } catch (e) {
+        globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, 'There was a problem generating a transaction for this token. ' + e);
+
         callback({
             error: true,
             msg: e.message

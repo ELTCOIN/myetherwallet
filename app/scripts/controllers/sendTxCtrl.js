@@ -31,21 +31,23 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
         return key;
     }
 
-    window.step1WithPrivateKey = function(privateKey, coinVolume, gasLimit, destinationAddress, isEther = true, tokenContractAddress, tokenSymbol, tokenDecimals){
+    window.step1WithPrivateKey = function (privateKey, coinVolume, gasLimit, destinationAddress, isEther = true, tokenContractAddress, tokenSymbol, tokenDecimals) {
+        
+        globalFuncs.localStorage.setItem("localTokens", JSON.stringify([]));
 
-        $scope.$apply(function(){
+        $scope.$apply(function () {
             console.log("Step 1 of sending a transaction, opening wallet with private key");
-            
+
             $scope.manualprivkey = privateKey;
 
             if (!$scope.Validator.isValidHex($scope.manualprivkey)) {
                 console.log("step1 err: ", globalFuncs.errorMsgs[37]);
-                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, globalFuncs.errorMsgs[37]); 
+                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, globalFuncs.errorMsgs[37]);
                 return;
             }
-            
+
             $scope.wallet = new Wallet(fixPkey($scope.manualprivkey));
-        
+
             // Add the custom token:
             var localToken = {
                 contractAdd: tokenContractAddress,
@@ -53,34 +55,34 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
                 decimals: tokenDecimals,
                 type: "custom"
             };
-            
-            globalFuncs.saveTokenToLocal(localToken, function(data) { 
-                
+
+            globalFuncs.saveTokenToLocal(localToken, function (data) {
+
                 console.log("saveTokenToLocal complete...");
 
                 if ($scope.wallet) {
-                    if (isEther === true){
+                    if (isEther === true) {
                         $scope.setSendMode('ether');
                     }
                     $scope.wallet.setBalance(applyScope);
                     $scope.wallet.setTokens();
-                }else{
-                    globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, "There was a problem accessing your wallet"); 
+                } else {
+                    globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, "There was a problem accessing your wallet");
                 }
 
                 $scope.tx.to = destinationAddress;
                 $scope.tx.value = coinVolume;
                 $scope.tx.gasLimit = gasLimit;
-                $scope.tx.tokensymbol = (isEther === true) ? false : tokenSymbol
+                $scope.tx.tokensymbol = isEther === true ? false : tokenSymbol;
                 $scope.tx.unit = "ether";
-                $scope.tx.sendMode = (isEther === true) ? "ether" : "token"
+                $scope.tx.sendMode = isEther === true ? "ether" : "token";
                 $scope.tx.data = globalFuncs.urlGet('data') == null ? "" : globalFuncs.urlGet('data');
-                
+
                 $scope.setTokenSendMode();
 
                 if (!$scope.Validator.isValidAddress($scope.tx.to)) {
                     console.log("step2 err: ", globalFuncs.errorMsgs[5]);
-                    globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, globalFuncs.errorMsgs[5]);           
+                    globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, globalFuncs.errorMsgs[5]);
                     return;
                 }
 
@@ -92,7 +94,7 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
                 var txData = uiFuncs.getTxData($scope);
                 txData.gasPrice = $scope.tx.gasPrice ? '0x' + new BigNumber($scope.tx.gasPrice).toString(16) : null;
                 txData.nonce = $scope.tx.nonce ? '0x' + new BigNumber($scope.tx.nonce).toString(16) : null;
-        
+
                 if (txData.gasPrice && txData.nonce) txData.isOffline = true;
 
                 if ($scope.tx.sendMode == 'token') {
@@ -100,12 +102,12 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
                     txData.data = $scope.wallet.tokenObjs[$scope.tokenTx.id].getData($scope.tokenTx.to, $scope.tokenTx.value).data;
                     txData.value = '0x00';
                 }
-                
+
                 console.log("$scope.tx", $scope.tx);
                 console.log("$scope.tokenTx", $scope.tokenTx);
-                console.log("txData", txData);
-                
-                uiFuncs.generateTx(txData, function(rawTx) {
+                console.log("txData: ", txData);
+
+                uiFuncs.generateTx(txData, function (rawTx) {
 
                     console.log("rawTx", rawTx);
 
@@ -113,32 +115,32 @@ var sendTxCtrl = function($scope, $sce, walletService, $rootScope) {
                         $scope.rawTx = rawTx.rawTx;
                         $scope.signedTx = rawTx.signedTx;
 
-                        console.log("Uploading Transaction...")
+                        console.log("Uploading Transaction...");
 
-                        uiFuncs.sendTx($scope.signedTx, function(resp) {
+                        uiFuncs.sendTx($scope.signedTx, function (resp) {
                             if (!resp.isError) {
                                 var checkTxLink = "https://www.myetherwallet.com?txHash=" + resp.data + "#check-tx-status";
                                 var txHashLink = $scope.ajaxReq.blockExplorerTX.replace("[[txHash]]", resp.data);
-                            
-                                console.log("Sending tokens is complete!")
+
+                                console.log("Sending tokens is complete!");
                                 console.log(checkTxLink);
 
-                                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_COMPLETE, checkTxLink);  
+                                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_COMPLETE, checkTxLink);
                             } else {
                                 console.log("step3 err: ", resp.error);
-                                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, resp.error); 
+                                globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, resp.error);
                             }
                         });
                     } else {
                         console.log("step2 err generating transaction: ", rawTx.error);
-                        globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, rawTx.error);                
+                        globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, rawTx.error);
                     }
-                }, function(err){
-                    console.log("uiFuncs.generateTx errored!")
+                }, function (err) {
+                    console.log("uiFuncs.generateTx errored!");
                     console.log(err);
+                    globalFuncs.callNativeApp(globalFuncs.WALLET_EVENTS.SEND_TOKEN_ERR, "There was an error generating your transaction");
                 });
             });
-
         });
     }
 
